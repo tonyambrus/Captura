@@ -82,10 +82,6 @@
 
                 <StackPanel Margin="5"
                             DataContext="{Binding Settings.Clicks}">
-                    <CheckBox Content="Display"
-                              IsChecked="{Binding Display, Mode=TwoWay}"
-                              Margin="0,5"/>
-
                     <Grid>
                         <Grid.ColumnDefinitions>
                             <ColumnDefinition Width="Auto"/>

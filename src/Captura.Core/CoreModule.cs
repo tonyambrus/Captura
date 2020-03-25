@@ -88,6 +88,7 @@ namespace Captura
 
         static void BindVideoWriterProviders(IBinder Binder)
         {
+            Binder.BindAsInterfaceAndClass<IVideoWriterProvider, WebRTCWriterProvider>();
             Binder.BindAsInterfaceAndClass<IVideoWriterProvider, SharpAviWriterProvider>();
             Binder.BindAsInterfaceAndClass<IVideoWriterProvider, DiscardWriterProvider>();
         }

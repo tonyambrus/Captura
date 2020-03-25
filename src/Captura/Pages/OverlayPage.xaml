@@ -30,13 +30,9 @@
             </TabItem>
             <TabItem Header="Elapsed"
                      DataContext="{Binding AboutViewModel, Source={StaticResource ServiceLocator}}">
-                <StackPanel DataContext="{Binding Settings.Elapsed}">
-                    <CheckBox Content="Display"
-                              IsChecked="{Binding Display, Mode=TwoWay}"
-                              Margin="0,5"/>
-                    <local:TextOverlaySettingsControl Margin="5"
-                                                      DockPanel.Dock="Bottom"/>
-                </StackPanel>
+                <local:TextOverlaySettingsControl Margin="5"
+                                                  DataContext="{Binding Settings.Elapsed}"
+                                                  DockPanel.Dock="Bottom"/>
             </TabItem>
             <TabItem Header="Censor">
                 <Frame Source="../Pages/CensorOverlaysPage.xaml"/>

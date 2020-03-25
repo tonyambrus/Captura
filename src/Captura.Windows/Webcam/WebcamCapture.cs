@@ -22,16 +22,22 @@ namespace Captura.Models
 
         public void Dispose()
         {
-            _syncContext.Run(() =>
-            {
-                _captureWebcam.StopPreview();
-                _captureWebcam.Dispose();
-            });
+            _captureWebcam.StopPreview();
+            _captureWebcam.Dispose();
         }
 
         public IBitmapImage Capture(IBitmapLoader BitmapLoader)
         {
-            return _syncContext.Run(() => _captureWebcam.GetFrame(BitmapLoader));
+            if (_syncContext == null)
+            {
+                return _captureWebcam.GetFrame(BitmapLoader);
+            }
+
+            IBitmapImage image = null;
+
+            _syncContext.Run(() => image = _captureWebcam.GetFrame(BitmapLoader));
+
+            return image;
         }
 
         public int Width => _captureWebcam.Size.Width;
@@ -41,21 +47,18 @@ namespace Captura.Models
 
         public void UpdatePreview(IWindow Window, Rectangle Location)
         {
-            _syncContext.Run(() =>
+            if (Window != null && _lastWin != Window.Handle)
             {
-                if (Window != null && _lastWin != Window.Handle)
-                {
-                    Dispose();
+                Dispose();
 
-                    _captureWebcam = new CaptureWebcam(_filter, _onClick, Window.Handle);
+                _captureWebcam = new CaptureWebcam(_filter, _onClick, Window.Handle);
 
-                    _captureWebcam.StartPreview();
+                _captureWebcam.StartPreview();
 
-                    _lastWin = Window.Handle;
-                }
+                _lastWin = Window.Handle;
+            }
 
-                _captureWebcam.OnPreviewWindowResize(Location.X, Location.Y, Location.Width, Location.Height);
-            });
+            _captureWebcam.OnPreviewWindowResize(Location.X, Location.Y, Location.Width, Location.Height);
         }
     }
 }
