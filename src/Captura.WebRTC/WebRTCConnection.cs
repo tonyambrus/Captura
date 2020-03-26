@@ -6,23 +6,29 @@ namespace Captura.Models.WebRTC
     public class WebRTCConnection : IDisposable
     {
         private WebSocketService service;
-        private List<WebSocketSession> sessions = new List<WebSocketSession>();
+        private List<WebRTCSession> sessions = new List<WebRTCSession>();
 
         public event Action<byte[], int, int> VideoFrameReady;
 
         public WebRTCConnection(WebRTCSettings _settings)
         {
-            service = new WebSocketService(CreateSession, _settings.Port);
+            service = new WebSocketService(svc => new WebSocketSignaler(new WebRTCSession(this)), _settings.Port);
         }
 
-        private WebSocketSession CreateSession(WebSocketService service)
+        public void Register(WebRTCSession session)
         {
-            var session = new WebSocketSession(service, this);
             lock (sessions)
             {
                 sessions.Add(session);
             }
-            return session;
+        }
+
+        public bool Unregister(WebRTCSession session)
+        {
+            lock (sessions)
+            {
+                return sessions.Remove(session);
+            }
         }
 
         public void Dispose()

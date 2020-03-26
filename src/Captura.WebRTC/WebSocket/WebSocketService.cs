@@ -8,13 +8,9 @@ namespace Captura.Models.WebRTC
 {
     public class WebSocketService : IDisposable
     {
-        private static WebSocketServer webSocketServer;
+        private WebSocketServer webSocketServer;
 
-        public event Action Opened;
-        public event Action<CloseEventArgs> Closed;
-        public event Action<WebSocket, ErrorEventArgs> Error;
-
-        public WebSocketService(Func<WebSocketService, WebSocketSession> factory, int port, string certPath = null, bool secure = false)
+        public WebSocketService(Func<WebSocketService, WebSocketBehavior> factory, int port, string certPath = null, bool secure = false)
         {
             // Start web socket server.
             Debug.WriteLine("Starting web socket server...");
