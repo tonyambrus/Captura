@@ -10,7 +10,7 @@ namespace Captura.Models.WebRTC
     {
         private WebSocketServer webSocketServer;
 
-        public WebSocketService(Func<WebSocketService, WebSocketBehavior> factory, int port, string certPath = null, bool secure = false)
+        public WebSocketService(Func<WebSocketService, WebSocketBehavior> factory, string path, int port, string certPath = null, bool secure = false)
         {
             // Start web socket server.
             Debug.WriteLine("Starting web socket server...");
@@ -21,7 +21,7 @@ namespace Captura.Models.WebRTC
                 webSocketServer.SslConfiguration.CheckCertificateRevocation = false;
             }
 
-            webSocketServer.AddWebSocketService("/", () => factory(this));
+            webSocketServer.AddWebSocketService(path, () => factory(this));
             webSocketServer.Start();
         }
 

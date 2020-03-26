@@ -12,8 +12,14 @@
             <ColumnDefinition/>
         </Grid.ColumnDefinitions>
         <StackPanel Margin="5">
-            <Grid Margin="0,5">
+            <Label Content="Connection Parameters"
+                       FontWeight="Bold"/>
+
+            <StackPanel>
+                <Grid Margin="0,5">
                 <Grid.RowDefinitions>
+                    <RowDefinition/>
+                    <RowDefinition/>
                     <RowDefinition/>
                 </Grid.RowDefinitions>
                 <Grid.ColumnDefinitions>
@@ -21,14 +27,48 @@
                     <ColumnDefinition Width="80"/>
                 </Grid.ColumnDefinitions>
 
-                <Label Content="Port"
-                       ContentStringFormat="{}: "
-                       Grid.Column="0"/>
-                <xctk:IntegerUpDown Value="{Binding Settings.WebRTC.Port}"
-                                    Grid.Column="1"
-                                    Minimum="2" />
+                <Label 
+                    Content="Port"
+                    ContentStringFormat="{}: "
+                    Grid.Row="0"
+                    Grid.Column="0" />
+                
+                <xctk:IntegerUpDown 
+                    Value="{Binding Settings.WebRTC.Port}"
+                    Grid.Row="0"
+                    Grid.Column="1"
+                    Minimum="100" />
 
+                <Label 
+                    Content="Path"
+                    ContentStringFormat="{}: "
+                    Grid.Row="1"
+                    Grid.Column="0"/>
+                
+                <TextBox
+                    Text="{Binding Settings.WebRTC.Path}"
+                    Grid.Row="1"
+                    Grid.Column="1"
+                    />
             </Grid>
+            </StackPanel>
+            <StackPanel>
+                <Label Content="Connection URL"
+                       FontWeight="Bold"/>
+
+                <TextBox 
+                    IsManipulationEnabled="false"
+                    Grid.Row="2"
+                    Grid.Column="1">
+                    <TextBox.Text>
+                        <MultiBinding StringFormat="{}ws://{0}:{1}{2}">
+                            <Binding Path="Settings.WebRTC.IP" Mode="OneWay" />
+                            <Binding Path="Settings.WebRTC.Port" Mode="OneWay" />
+                            <Binding Path="Settings.WebRTC.Path" Mode="OneWay" />
+                        </MultiBinding>
+                    </TextBox.Text>
+                </TextBox>
+            </StackPanel>
         </StackPanel>
     </Grid>
 </Page>

@@ -12,7 +12,7 @@ namespace Captura.Models.WebRTC
 
         public WebRTCConnection(WebRTCSettings _settings)
         {
-            service = new WebSocketService(svc => new WebSocketSignaler(new WebRTCSession(this)), _settings.Port);
+            service = new WebSocketService(svc => new WebSocketSignaler(new WebRTCSession(this)), _settings.Path, _settings.Port);
         }
 
         public void Register(WebRTCSession session)
