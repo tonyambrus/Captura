@@ -61,6 +61,10 @@
                 <captura:ModernButton Content="{Binding About, Source={StaticResource Loc}, Mode=OneWay}"
                                       IconData="{Binding Icons.Help, Source={StaticResource ServiceLocator}}"
                                       CommandParameter="/Pages/AboutPage.xaml"/>
+
+                <captura:ModernButton Content="{Binding WebRTC, Source={StaticResource Loc}, Mode=OneWay}"
+                                      IconData="{Binding Icons.Web, Source={StaticResource ServiceLocator}}"
+                                      CommandParameter="/Pages/WebRTCPage.xaml"/>
             </WrapPanel>
         </ScrollViewer>
     </DockPanel>

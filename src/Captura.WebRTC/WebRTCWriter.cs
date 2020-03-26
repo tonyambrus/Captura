@@ -31,14 +31,14 @@ namespace Captura.Models
         /// <param name="ImageProvider">The image source.</param>
         /// <param name="FrameRate">Video Frame Rate.</param>
         /// <param name="AudioProvider">The audio source. null = no audio.</param>
-        public WebRTCWriter(string FileName, WebRTCCodec Codec, IImageProvider ImageProvider, int FrameRate, IAudioProvider AudioProvider = null)
+        public WebRTCWriter(string FileName, WebRTCCodec Codec, WebRTCSettings settings, IImageProvider ImageProvider, int FrameRate, IAudioProvider AudioProvider = null)
         {
             _codec = Codec;
 
             _width = ImageProvider.Width;
             _height = ImageProvider.Height;
             _videoBuffer = new byte[_width * _height * 4];
-            _connection = new WebRTC.WebRTCConnection();
+            _connection = new WebRTC.WebRTCConnection(settings);
         }
         
         /// <summary>
@@ -56,10 +56,7 @@ namespace Captura.Models
 
             lock (_syncLock)
             {
-                if (_connection.IsConnected)
-                {
-                    _connection.WriteFrame(_videoBuffer, _width, _height);
-                }
+                _connection.WriteFrame(_videoBuffer, _width, _height);
             }
         }
 

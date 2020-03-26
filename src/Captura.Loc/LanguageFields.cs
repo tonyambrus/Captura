@@ -953,6 +953,12 @@ namespace Captura
             set => Set(value);
         }
 
+        public string WebRTC
+        {
+            get => Get();
+            set => Set(value);
+        }
+
         public string Website
         {
             get => Get();

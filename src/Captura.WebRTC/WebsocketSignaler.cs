@@ -2,111 +2,58 @@
 using Newtonsoft.Json.Linq;
 using System;
 using System.Diagnostics;
-using System.Net;
 using System.Threading.Tasks;
 using WebSocketSharp;
-using WebSocketSharp.Server;
 
 namespace Captura.Models.WebRTC
 {
-    public class WebsocketSignaler : IDisposable
+    public class WebSocketSignaler : IDisposable
     {
-        public class WebRtcSession : WebSocketBehavior
-        {
-            public PeerConnection pc { get; private set; }
-
-            public event Action<WebRtcSession, string> MessageReceived;
-            public event Action<WebRtcSession, CloseEventArgs> Closed;
-            public new event Action<WebRtcSession, ErrorEventArgs> Error;
-            public event Action<WebRtcSession> Opened;
-
-            public WebRtcSession(PeerConnection pc)
-            {
-                this.pc = pc ?? new PeerConnection();
-            }
-
-            protected override void OnOpen()
-            {
-                Opened(this);
-            }
-
-            protected override void OnMessage(MessageEventArgs e)
-            {
-                MessageReceived(this, e.Data);
-            }
-
-
-            protected override void OnError(ErrorEventArgs e)
-            {
-                Error(this, e);
-            }
-
-            protected override void OnClose(CloseEventArgs e)
-            {
-                Closed(this, e);
-            }
-        }
-
-        private const int WEBSOCKET_PORT = 8081;
-        private static WebSocketServer webSocketServer;
-
         public event Action Opened;
         public event Action<CloseEventArgs> Closed;
         public event Action<WebSocket, ErrorEventArgs> Error;
 
         public bool IsClient => false;
         public bool receivedOffer = false;
+        
+        private WebSocketSession session;
+        private PeerConnection peer;
 
-        public WebsocketSignaler(PeerConnection pc, string certPath = null, int port = WEBSOCKET_PORT, bool secure = true)
+        public WebSocketSignaler(WebSocketSession session, PeerConnection peer)
         {
-            try
-            {
-                // Start web socket server.
-                Debug.WriteLine("Starting web socket server...");
-                webSocketServer = new WebSocketServer(IPAddress.Any, port, secure);
-                if (secure)
-                {
-                    webSocketServer.SslConfiguration.ServerCertificate = new System.Security.Cryptography.X509Certificates.X509Certificate2(certPath);
-                    webSocketServer.SslConfiguration.CheckCertificateRevocation = false;
-                }
+            this.session = session;
+            this.peer = peer;
 
-                //webSocketServer.Log.Level = WebSocketSharp.LogLevel.Debug;
-                webSocketServer.AddWebSocketService<WebRtcSession>("/", () =>
-                {
-                    var session = new WebRtcSession(pc);
-                    session.Opened += (s) => Opened();
-                    session.MessageReceived += MessageReceived;
-                    session.Error += (s, e) => Error(s.Context.WebSocket, e);
-                    session.Closed += (s, e) => Closed(e);
-                    return session;
-                });
-                webSocketServer.Start();
-
-                Debug.WriteLine($"Waiting for browser web socket connection to {webSocketServer.Address}:{webSocketServer.Port}...");
-            }
-            catch (Exception e)
-            {
-                Debug.WriteLine(e.Message);
-            }
+            this.peer.RenegotiationNeeded += OnRenegotiate;
         }
 
         public void Dispose()
         {
-            webSocketServer?.Stop();
-            webSocketServer = null;
+            this.peer.RenegotiationNeeded -= OnRenegotiate;
         }
 
-        private async void MessageReceived(WebRtcSession session, string msg)
+        private void OnRenegotiate()
         {
-            //Debug.WriteLine($"web socket recv: {msg.Length} bytes");
+            Debug.WriteLine("pc.RenegotiationNeeded");
 
+            // If already connected, update the connection on the fly.
+            // If not, wait for user action and don't automatically connect.
+            if (peer.IsConnected && session.HasSocketConnection)
+            {
+                receivedOffer = false;
+
+                Debug.WriteLine("pc.CreateOffer");
+                peer.CreateOffer();
+            }
+        }
+
+        public async void OnMessage(string msg)
+        {
             JObject jsonMsg = JObject.Parse(msg);
 
             if ((string)jsonMsg["type"] == "ice")
             {
-                //Debug.WriteLine($"Adding remote ICE candidate {msg}.");
-
-                while (!session.pc.Initialized)
+                while (!peer.Initialized)
                 {
                     // This delay is needed due to an initialise bug in the Microsoft.MixedReality.WebRTC
                     // nuget packages up to version 0.2.3. On master awaiting pc.InitializeAsync does end 
@@ -115,18 +62,16 @@ namespace Captura.Models.WebRTC
                     await Task.Delay(1000);
                 }
 
-                session.pc.AddIceCandidate((string)jsonMsg["sdpMLineindex"], (int)jsonMsg["sdpMid"], (string)jsonMsg["candidate"]);
+                peer.AddIceCandidate((string)jsonMsg["sdpMLineindex"], (int)jsonMsg["sdpMid"], (string)jsonMsg["candidate"]);
             }
             else if ((string)jsonMsg["type"] == "sdp")
             {
                 Debug.WriteLine("Received remote peer SDP offer.");
 
-                var config = new PeerConnectionConfiguration();
-
-                session.pc.IceCandidateReadytoSend += (string candidate, int sdpMlineindex, string sdpMid) =>
+                peer.IceCandidateReadytoSend += (string candidate, int sdpMlineindex, string sdpMid) =>
                 {
                     Debug.WriteLine($"Sending ice candidate: {candidate}");
-                    JObject iceCandidate = new JObject {
+                    var iceCandidate = new JObject {
                         { "type", "ice" },
                         { "candidate", candidate },
                         { "sdpMLineindex", sdpMlineindex },
@@ -135,17 +80,16 @@ namespace Captura.Models.WebRTC
                     session.Context.WebSocket.Send(iceCandidate.ToString());
                 };
 
-                session.pc.IceStateChanged += (newState) =>
+                peer.IceStateChanged += (newState) =>
                 {
                     Debug.WriteLine($"ice connection state changed to {newState}.");
                 };
 
-                session.pc.LocalSdpReadytoSend += (string type, string sdp) =>
+                peer.LocalSdpReadytoSend += (string type, string sdp) =>
                 {
-
                     // Send our SDP answer to the remote peer.
                     var msgType = receivedOffer ? "answer" : "offer";
-                    JObject sdpAnswer = new JObject {
+                    var sdpAnswer = new JObject {
                         { "type", "sdp" },
                         { msgType, sdp }
                     };
@@ -155,25 +99,28 @@ namespace Captura.Models.WebRTC
                     session.Context.WebSocket.Send(msg);
                 };
 
+                if (!peer.Initialized)
+                {
+                    Debug.WriteLine($"Reinitializing PC");
+                    await peer.InitializeAsync(PeerConnectionConfig.Default);
+                }
+
                 if (jsonMsg.ContainsKey("answer"))
                 {
                     Debug.WriteLine($"setting Remote SDP answer.");
-                    await session.pc.SetRemoteDescriptionAsync("answer", (string)jsonMsg["answer"]);
+                    await peer.SetRemoteDescriptionAsync("answer", (string)jsonMsg["answer"]);
                 }
                 else if (jsonMsg.ContainsKey("offer"))
                 {
-                    Debug.WriteLine($"Reinitializing PC");
-                    await session.pc.InitializeAsync(config);
-                    
                     Debug.WriteLine($"Setting Remote SDP offer");
-                    await session.pc.SetRemoteDescriptionAsync("offer", (string)jsonMsg["offer"]);
+                    await peer.SetRemoteDescriptionAsync("offer", (string)jsonMsg["offer"]);
                     receivedOffer = true;
 
                     Debug.WriteLine($"Creating answer SDP");
-                    if (!session.pc.CreateAnswer())
+                    if (!peer.CreateAnswer())
                     {
                         Console.WriteLine("Failed to create peer connection answer, closing peer connection.");
-                        session.pc.Close();
+                        peer.Close();
                         session.Context.WebSocket.Close();
                     }
                 }
@@ -185,6 +132,5 @@ namespace Captura.Models.WebRTC
                 Debug.WriteLine("Ready.");
             }
         }
-
     }
 }

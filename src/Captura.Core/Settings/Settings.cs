@@ -113,6 +113,8 @@ namespace Captura
 
         public WindowsSettings WindowsSettings { get; }
 
+        public WebRTCSettings WebRTC { get; } = new WebRTCSettings();
+
         public int PreStartCountdown
         {
             get => Get(0);

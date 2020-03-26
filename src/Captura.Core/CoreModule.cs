@@ -104,6 +104,7 @@ namespace Captura
             Binder.Bind(() => Binder.Get<Settings>().Video);
             Binder.Bind(() => Binder.Get<Settings>().UI);
             Binder.Bind(() => Binder.Get<Settings>().WebcamOverlay);
+            Binder.Bind(() => Binder.Get<Settings>().WebRTC);
         }
     }
 }

@@ -123,6 +123,7 @@ namespace Captura.Models.WebRTC
             OnDisable();
 
             StopTrack();
+
             //PeerConnection.OnInitialized.RemoveListener(OnPeerInitialized);
             //PeerConnection.OnShutdown.RemoveListener(OnPeerShutdown);
         }

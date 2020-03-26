@@ -1,117 +1,54 @@
-﻿using Microsoft.MixedReality.WebRTC;
-using System;
+﻿using System;
 using System.Collections.Generic;
-using System.Diagnostics;
-using System.Threading.Tasks;
 
 namespace Captura.Models.WebRTC
 {
-
-    class WebRTCConnection : IDisposable
+    public class WebRTCConnection : IDisposable
     {
-        private PeerConnection pc;
-        private SceneVideoSource source;
-        private WebsocketSignaler signaler;
+        private WebSocketService service;
+        private List<WebSocketSession> sessions = new List<WebSocketSession>();
 
-        public bool IsConnected { get; private set; }
+        public event Action<byte[], int, int> VideoFrameReady;
 
-        public WebRTCConnection()
+        public WebRTCConnection(WebRTCSettings _settings)
         {
-            pc = new PeerConnection();
-
-            source = new SceneVideoSource();
-            source.PeerConnection = pc;
-
-            pc.Connected += () => {
-                Debug.WriteLine("pc.Connected");
-                IsConnected = true;
-            };
-
-            pc.RenegotiationNeeded += () => {
-                Debug.WriteLine("pc.RenegotiationNeeded");
-                //var _ = ConnectAsync();
-                
-                // If already connected, update the connection on the fly.
-                // If not, wait for user action and don't automatically connect.
-                if (pc.IsConnected)
-                {
-                    pc.CreateOffer();
-                    signaler.receivedOffer = false;
-                }
-            };
-
-            signaler = new WebsocketSignaler(pc, secure: false);
-            signaler.Opened += () =>
-            {
-                Debug.WriteLine($"signaler.Opened");
-            };
-            signaler.Error += (s, e) =>
-            {
-                Debug.WriteLine($"signaler.Error {e.Message} {s.IsAlive}");
-            };
-            signaler.Closed += (e) =>
-            {
-                Debug.WriteLine($"signaler.Closed {e.Code} {e.Reason} {e.WasClean}");
-                IsConnected = false;
-                
-                var _ = ConnectAsync();
-            };
-
-            var _ = ConnectAsync();
+            service = new WebSocketService(CreateSession, _settings.Port);
         }
 
-        public async Task ConnectAsync()
+        private WebSocketSession CreateSession(WebSocketService service)
         {
-            Debug.WriteLine("ConnectAsync");
-
-            Debug.WriteLine("source?.StopTrack");
-            source?.StopTrack();
-
-            var config = new PeerConnectionConfiguration
+            var session = new WebSocketSession(service, this);
+            lock (sessions)
             {
-                IceServers = new List<IceServer>() {
-                    new IceServer{ Urls = { "stun:stun.l.google.com:19302" } }
-                }
-            };
-
-            Debug.WriteLine("pc?.InitializeAsync");
-            await pc?.InitializeAsync(config);
-            
-            Debug.WriteLine("source?.StartTrack");
-            source?.StartTrack();
-
-            Debug.WriteLine("pc?.AddLocalAudioTrackAsync");
-            try
-            {
-                await pc?.AddLocalAudioTrackAsync();
+                sessions.Add(session);
             }
-            catch(Exception e)
-            {
-                Debug.WriteLine($"Error: {e}");
-            }
-        }
-
-
-        public bool WriteFrame(byte[] videoBuffer, int width, int height)
-        {
-            if (IsConnected)
-            {
-                return source.OnFrameReady(videoBuffer, width, height);
-            }
-
-            return false;
+            return session;
         }
 
         public void Dispose()
         {
-            source?.Dispose();
-            source = null;
+            lock (sessions)
+            {
+                foreach (var session in sessions)
+                {
+                    session.Dispose();
+                }
+                sessions.Clear();
+            }
 
-            pc?.Dispose();
-            pc = null;
+            service?.Dispose();
+            service = null;
+        }
 
-            signaler?.Dispose();
-            signaler = null;
+        public bool WriteFrame(byte[] videoBuffer, int width, int height)
+        {
+            if (VideoFrameReady != null)
+            {
+                VideoFrameReady(videoBuffer, width, height);
+                return true;
+            }
+
+            return false;
         }
     }
 }

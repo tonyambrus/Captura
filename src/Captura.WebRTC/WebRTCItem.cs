@@ -18,7 +18,8 @@
         {
             _codec.Quality = Args.VideoQuality;
 
-            return new WebRTCWriter(Args.FileName, _codec, Args.ImageProvider, Args.FrameRate, Args.AudioProvider);
+            var settings = ServiceProvider.Get<WebRTCSettings>();
+            return new WebRTCWriter(Args.FileName, _codec, settings, Args.ImageProvider, Args.FrameRate, Args.AudioProvider);
         }
         
         public override string ToString() => _codec.Name;
