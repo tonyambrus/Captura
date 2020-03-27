@@ -10,7 +10,7 @@ namespace Captura.Models
     class WebRTCWriter : IVideoFileWriter
     {
         #region Fields
-        WebRTC.WebRTCConnection _connection;
+        WebRTC.WebRTCHost _connection;
         byte[] _videoBuffer;
         int _width;
         int _height;
@@ -38,7 +38,7 @@ namespace Captura.Models
             _width = ImageProvider.Width;
             _height = ImageProvider.Height;
             _videoBuffer = new byte[_width * _height * 4];
-            _connection = new WebRTC.WebRTCConnection(settings);
+            _connection = new WebRTC.WebRTCHost(settings);
         }
         
         /// <summary>

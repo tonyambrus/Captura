@@ -8,7 +8,6 @@ using WebSocketSharp.Server;
 
 namespace Captura.Models.WebRTC
 {
-
     public class WebSocketSignaler : WebSocketBehavior, IDisposable
     {
         public bool IsClient => false;
@@ -22,9 +21,11 @@ namespace Captura.Models.WebRTC
         public WebSocketSignaler(WebRTCSession session)
         {
             this.session = session;
+            
             this.peer = session.Peer;
-
             this.peer.RenegotiationNeeded += OnRenegotiate;
+            
+            this.session.Start();
         }
 
         public void Dispose()

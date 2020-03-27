@@ -12,11 +12,22 @@ namespace Captura.Models.WebRTC
             return Regex.Replace(message, "[\n\r\t ]+", " ");
         }
 
+        public static void Log(string text) => WriteLine(text);
+        public static void LogError(string text) => WriteLine(text);
+
         public static void WriteLine(string text)
         {
 #if DEBUG
             Debug.WriteLine(text);
 #endif
         }
+
+        public static void LogException(Exception ex)
+        {
+#if DEBUG
+            Debug.WriteLine(ex.ToString());
+#endif
+        }
     }
+
 }

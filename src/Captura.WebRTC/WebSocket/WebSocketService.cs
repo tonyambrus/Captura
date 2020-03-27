@@ -1,7 +1,5 @@
 ﻿using System;
-using System.Diagnostics;
 using System.Net;
-using WebSocketSharp;
 using WebSocketSharp.Server;
 
 namespace Captura.Models.WebRTC
@@ -10,10 +8,9 @@ namespace Captura.Models.WebRTC
     {
         private WebSocketServer webSocketServer;
 
-        public WebSocketService(Func<WebSocketService, WebSocketBehavior> factory, string path, int port, string certPath = null, bool secure = false)
+        public WebSocketService(WebRTCHost webrtc, string path, int port, string certPath = null, bool secure = false)
         {
-            // Start web socket server.
-            Debug.WriteLine("Starting web socket server...");
+            Util.WriteLine("Starting web socket server...");
             webSocketServer = new WebSocketServer(IPAddress.Any, port, secure);
             if (secure)
             {
@@ -21,7 +18,7 @@ namespace Captura.Models.WebRTC
                 webSocketServer.SslConfiguration.CheckCertificateRevocation = false;
             }
 
-            webSocketServer.AddWebSocketService(path, () => factory(this));
+            webSocketServer.AddWebSocketService(path, () => new WebSocketSignaler(new WebRTCSession(webrtc)));
             webSocketServer.Start();
         }
 

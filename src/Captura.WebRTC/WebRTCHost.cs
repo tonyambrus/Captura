@@ -3,16 +3,27 @@ using System.Collections.Generic;
 
 namespace Captura.Models.WebRTC
 {
-    public class WebRTCConnection : IDisposable
+    public class WebRTCHost : IDisposable
     {
-        private WebSocketService service;
+        private IDisposable service;
         private List<WebRTCSession> sessions = new List<WebRTCSession>();
 
         public event Action<byte[], int, int> VideoFrameReady;
 
-        public WebRTCConnection(WebRTCSettings _settings)
+        public WebRTCHost(WebRTCSettings settings)
         {
-            service = new WebSocketService(svc => new WebSocketSignaler(new WebRTCSession(this)), _settings.Path, _settings.Port);
+            if (settings.Mode == WebRTCEndpoint.WebSocket)
+            {
+                service = new WebSocketService(this, settings.WebSocketPath, settings.WebSocketPort);
+            }
+            else if (settings.Mode == WebRTCEndpoint.MediaServer)
+            { 
+                service = new MediaServerService(this, settings.MediaServerUrl, settings.MediaServerStreamName);
+            }
+            else
+            {
+                throw new Exception($"Invalid mode {settings.Mode}");
+            }
         }
 
         public void Register(WebRTCSession session)
@@ -35,7 +46,7 @@ namespace Captura.Models.WebRTC
         {
             lock (sessions)
             {
-                foreach (var session in sessions)
+                foreach (var session in sessions.ToArray())
                 {
                     session.Dispose();
                 }

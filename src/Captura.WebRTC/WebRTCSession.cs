@@ -8,18 +8,22 @@ namespace Captura.Models.WebRTC
 {
     public class WebRTCSession : IDisposable
     {
-        private WebRTCConnection webrtc;
+        private WebRTCHost webrtc;
         private PeerConnection peer;
         private SceneVideoSource source;
         private CancellationTokenSource cancelSession;
 
         public IceConnectionState ConnectionState { get; private set; }
-        public bool IsConnected => ConnectionState == IceConnectionState.Connected;
+        public bool IsConnected { get; private set; }
         public PeerConnection Peer => peer;
 
-        public delegate ISignaler SignallerFactory(WebRTCSession session, PeerConnection peer);
+        private bool started;
 
-        public WebRTCSession(WebRTCConnection webrtc)
+        public event Action<WebRTCSession> Initialized;
+        public event Action<WebRTCSession> PreShutdown;
+        public event Action<WebRTCSession> PostShutdown;
+
+        public WebRTCSession(WebRTCHost webrtc)
         {
             this.webrtc = webrtc;
             this.cancelSession = new CancellationTokenSource();
@@ -27,11 +31,16 @@ namespace Captura.Models.WebRTC
             this.source = new SceneVideoSource() { PeerConnection = peer };
 
             this.peer.IceStateChanged += OnIceStateChanged;
+            this.peer.Connected += OnConnected;
             
             this.webrtc.VideoFrameReady += OnFrameReady;
             this.webrtc.Register(this);
+        }
 
-            var _ = Run();
+        private void OnConnected()
+        {
+            Util.WriteLine($"WebRTCSession.OnConnected");
+            IsConnected = true;
         }
 
         public void Dispose()
@@ -43,11 +52,9 @@ namespace Captura.Models.WebRTC
 
             cancelSession.Cancel();
 
-            source?.Dispose();
-            source = null;
+            source.Dispose();
 
-            peer?.Dispose();
-            peer = null;
+            peer.Dispose();
         }
 
         private void OnIceStateChanged(IceConnectionState newState)
@@ -80,7 +87,18 @@ namespace Captura.Models.WebRTC
             }
         }
 
-        public async Task Run()
+        public void Start()
+        {
+            if (started)
+            {
+                throw new Exception("Already started");
+            }
+
+            started = true;
+            var _ = StartAsync();
+        }
+
+        private async Task StartAsync()
         {
             Util.WriteLine("WebRTCSession.Run");
 
@@ -95,6 +113,8 @@ namespace Captura.Models.WebRTC
                 Util.WriteLine("WebRTCSession.peer.AddLocalAudioTrackAsync");
                 await peer.AddLocalAudioTrackAsync();
 
+                Initialized?.Invoke(this);
+
                 Util.WriteLine("WebRTCSession.WaitForConnectionClose");
                 await WaitForConnectionClose();
 
@@ -106,10 +126,14 @@ namespace Captura.Models.WebRTC
             }
             finally
             {
+                PreShutdown?.Invoke(this);
+
                 Util.WriteLine("WebRTCSession.Disposing");
                 Dispose();
                 Util.WriteLine("WebRTCSession.Disposed");
             }
+
+            PostShutdown?.Invoke(this);
         }
     }
 }

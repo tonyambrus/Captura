@@ -3,8 +3,16 @@
       xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
       xmlns:xctk="http://schemas.xceed.com/wpf/xaml/toolkit"
       xmlns:captura="clr-namespace:Captura"
+      xmlns:sys="clr-namespace:System;assembly=mscorlib"
       DataContext="{Binding MainViewModel, Source={StaticResource ServiceLocator}}"
       Title="WebRTC">
+    <!--<Page.Resources>
+        <ObjectDataProvider x:Key="WebRTCSettingsEMode" MethodName="GetNames" ObjectType="{x:Type sys:Enum}">
+            <ObjectDataProvider.MethodParameters>
+                <x:Type TypeName="captura:WebRTCEndpoint"/>
+            </ObjectDataProvider.MethodParameters>
+        </ObjectDataProvider>
+    </Page.Resources>-->
     <Grid Margin="5">
         <Grid.ColumnDefinitions>
             <ColumnDefinition/>
@@ -12,47 +20,106 @@
             <ColumnDefinition/>
         </Grid.ColumnDefinitions>
         <StackPanel Margin="5">
-            <Label Content="Connection Parameters"
+            <Label Content="WebRTC Endpoint"
+                       FontWeight="Bold"/>
+            
+            <!--<ListView Margin="0,5"
+                      ItemsSource="{Binding Source={StaticResource WebRTCSettingsEMode}}"
+                      SelectedValue="{Binding Settings.WebRTC.Mode, Mode=TwoWay}"
+                      BorderThickness="0.4"
+                      SelectionMode="Single">
+                <ListView.ItemsPanel>
+                    <ItemsPanelTemplate>
+                        <UniformGrid Rows="1"/>
+                    </ItemsPanelTemplate>
+                </ListView.ItemsPanel>
+                <ListView.ItemContainerStyle>
+                    <Style TargetType="ListViewItem" BasedOn="{StaticResource {x:Type ListViewItem}}">
+                        <Setter Property="HorizontalContentAlignment" Value="Center"/>
+                    </Style>
+                </ListView.ItemContainerStyle>
+            </ListView>-->
+
+            <Label Content="MediaServer Parameters"
                        FontWeight="Bold"/>
 
             <StackPanel>
                 <Grid Margin="0,5">
-                <Grid.RowDefinitions>
-                    <RowDefinition/>
-                    <RowDefinition/>
-                    <RowDefinition/>
-                </Grid.RowDefinitions>
-                <Grid.ColumnDefinitions>
-                    <ColumnDefinition Width="Auto"/>
-                    <ColumnDefinition Width="80"/>
-                </Grid.ColumnDefinitions>
+                    <Grid.RowDefinitions>
+                        <RowDefinition/>
+                        <RowDefinition/>
+                    </Grid.RowDefinitions>
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="Auto"/>
+                        <ColumnDefinition/>
+                    </Grid.ColumnDefinitions>
 
-                <Label 
-                    Content="Port"
-                    ContentStringFormat="{}: "
-                    Grid.Row="0"
-                    Grid.Column="0" />
-                
-                <xctk:IntegerUpDown 
-                    Value="{Binding Settings.WebRTC.Port}"
-                    Grid.Row="0"
-                    Grid.Column="1"
-                    Minimum="100" />
+                    <Label 
+                        Content="Address"
+                        ContentStringFormat="{}: "
+                        Grid.Row="0"
+                        Grid.Column="0" />
 
-                <Label 
-                    Content="Path"
-                    ContentStringFormat="{}: "
-                    Grid.Row="1"
-                    Grid.Column="0"/>
-                
-                <TextBox
-                    Text="{Binding Settings.WebRTC.Path}"
-                    Grid.Row="1"
-                    Grid.Column="1"
-                    />
-            </Grid>
+                    <TextBox
+                        Text="{Binding Settings.WebRTC.MediaServerUrl}"
+                        Grid.Row="0"
+                        Grid.Column="1"
+                        />
+
+                    <Label 
+                        Content="Stream Name"
+                        ContentStringFormat="{}: "
+                        Grid.Row="1"
+                        Grid.Column="0"/>
+
+                    <TextBox
+                        Text="{Binding Settings.WebRTC.MediaServerStreamName}"
+                        Grid.Row="1"
+                        Grid.Column="1"
+                        />
+                </Grid>
             </StackPanel>
+
+            <Label Content="WebSocket Parameters"
+                       FontWeight="Bold"/>
+
             <StackPanel>
+                <Grid Margin="0,5">
+                    <Grid.RowDefinitions>
+                        <RowDefinition/>
+                        <RowDefinition/>
+                        <RowDefinition/>
+                    </Grid.RowDefinitions>
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="Auto"/>
+                        <ColumnDefinition/>
+                    </Grid.ColumnDefinitions>
+
+                    <Label 
+                        Content="Port"
+                        ContentStringFormat="{}: "
+                        Grid.Row="0"
+                        Grid.Column="0" />
+                
+                    <xctk:IntegerUpDown 
+                        Value="{Binding Settings.WebRTC.WebSocketPort}"
+                        Grid.Row="0"
+                        Grid.Column="1"
+                        Minimum="100" />
+
+                    <Label 
+                        Content="Path"
+                        ContentStringFormat="{}: "
+                        Grid.Row="1"
+                        Grid.Column="0"/>
+                
+                    <TextBox
+                        Text="{Binding Settings.WebRTC.WebSocketPath}"
+                        Grid.Row="1"
+                        Grid.Column="1"
+                        />
+                </Grid>
+
                 <Label Content="Connection URL"
                        FontWeight="Bold"/>
 
@@ -63,8 +130,8 @@
                     <TextBox.Text>
                         <MultiBinding StringFormat="{}ws://{0}:{1}{2}">
                             <Binding Path="Settings.WebRTC.IP" Mode="OneWay" />
-                            <Binding Path="Settings.WebRTC.Port" Mode="OneWay" />
-                            <Binding Path="Settings.WebRTC.Path" Mode="OneWay" />
+                            <Binding Path="Settings.WebRTC.WebSocketPort" Mode="OneWay" />
+                            <Binding Path="Settings.WebRTC.WebSocketPath" Mode="OneWay" />
                         </MultiBinding>
                     </TextBox.Text>
                 </TextBox>
