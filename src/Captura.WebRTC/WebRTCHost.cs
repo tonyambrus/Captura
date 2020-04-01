@@ -1,4 +1,5 @@
-﻿using System;
+﻿using ScreenShare;
+using System;
 using System.Collections.Generic;
 
 namespace Captura.Models.WebRTC
@@ -6,24 +7,33 @@ namespace Captura.Models.WebRTC
     public class WebRTCHost : IDisposable
     {
         private IDisposable service;
+        private IDisposable screenShare;
         private List<WebRTCSession> sessions = new List<WebRTCSession>();
 
         public event Action<byte[], int, int> VideoFrameReady;
 
         public WebRTCHost(WebRTCSettings settings)
         {
-            if (settings.Mode == WebRTCEndpoint.WebSocket)
-            {
-                service = new WebSocketService(this, settings.WebSocketPath, settings.WebSocketPort);
-            }
-            else if (settings.Mode == WebRTCEndpoint.MediaServer)
-            { 
-                service = new MediaServerService(this, settings.MediaServerUrl, settings.MediaServerStreamName);
-            }
-            else
-            {
-                throw new Exception($"Invalid mode {settings.Mode}");
-            }
+            screenShare = new ScreenShare.ScreenShare();
+
+            service = new MediaServerService(this, "http://192.168.1.158:3000/channel/mediaserver/", "mediaserver");
+
+            //if (true || settings.Mode == WebRTCEndpoint.NodeDSS)
+            //{
+            //    service = new NodeDssService(this, settings.MediaServerUrl, settings.MediaServerStreamName);
+            //}
+            //else if (settings.Mode == WebRTCEndpoint.WebSocket)
+            //{
+            //    service = new WebSocketService(this, settings.WebSocketPath, settings.WebSocketPort);
+            //}
+            //else if (settings.Mode == WebRTCEndpoint.MediaServer)
+            //{ 
+            //    service = new MediaServerService(this, settings.MediaServerUrl, settings.MediaServerStreamName);
+            //}
+            //else
+            //{
+            //    throw new Exception($"Invalid mode {settings.Mode}");
+            //}
         }
 
         public void Register(WebRTCSession session)
@@ -44,6 +54,9 @@ namespace Captura.Models.WebRTC
 
         public void Dispose()
         {
+            screenShare?.Dispose();
+            screenShare = null;
+
             lock (sessions)
             {
                 foreach (var session in sessions.ToArray())

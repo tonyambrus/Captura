@@ -5,6 +5,7 @@ namespace Captura
 {
     public enum WebRTCEndpoint
     {
+        NodeDSS,
         WebSocket,
         MediaServer
     }
@@ -25,7 +26,7 @@ namespace Captura
 
         public WebRTCEndpoint Mode
         {
-            get => Get(WebRTCEndpoint.MediaServer);
+            get => Get(WebRTCEndpoint.NodeDSS);
             set => Set(value);
         }
 

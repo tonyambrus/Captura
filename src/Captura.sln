@@ -43,6 +43,10 @@ Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Audio", "Audio", "{E645F466
 EndProject
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Captura.WebRTC", "Captura.WebRTC\Captura.WebRTC.csproj", "{5B575B4B-1551-4530-85CF-44ED23FEEA63}"
 EndProject
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "ScreenShare", "ScreenShare", "{C465C190-D94D-4DEF-AC4B-E583790A290A}"
+EndProject
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "ScreenShare", "ScreenShare\ScreenShare.csproj", "{8643283A-96F2-4B44-A439-5B583A97C156}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
@@ -203,6 +207,14 @@ Global
 		{5B575B4B-1551-4530-85CF-44ED23FEEA63}.Release|Any CPU.Build.0 = Release|Any CPU
 		{5B575B4B-1551-4530-85CF-44ED23FEEA63}.Release|x64.ActiveCfg = Release|x64
 		{5B575B4B-1551-4530-85CF-44ED23FEEA63}.Release|x64.Build.0 = Release|x64
+		{8643283A-96F2-4B44-A439-5B583A97C156}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{8643283A-96F2-4B44-A439-5B583A97C156}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{8643283A-96F2-4B44-A439-5B583A97C156}.Debug|x64.ActiveCfg = Debug|x64
+		{8643283A-96F2-4B44-A439-5B583A97C156}.Debug|x64.Build.0 = Debug|x64
+		{8643283A-96F2-4B44-A439-5B583A97C156}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{8643283A-96F2-4B44-A439-5B583A97C156}.Release|Any CPU.Build.0 = Release|Any CPU
+		{8643283A-96F2-4B44-A439-5B583A97C156}.Release|x64.ActiveCfg = Release|x64
+		{8643283A-96F2-4B44-A439-5B583A97C156}.Release|x64.Build.0 = Release|x64
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
@@ -210,6 +222,7 @@ Global
 	GlobalSection(NestedProjects) = preSolution
 		{76BC6324-E205-41DB-B60A-128D9FD66624} = {E645F466-C7D6-469A-B4CC-B0917703318C}
 		{D29DE716-EDDF-4CFB-8430-D07CCACB0921} = {E645F466-C7D6-469A-B4CC-B0917703318C}
+		{8643283A-96F2-4B44-A439-5B583A97C156} = {C465C190-D94D-4DEF-AC4B-E583790A290A}
 	EndGlobalSection
 	GlobalSection(ExtensibilityGlobals) = postSolution
 		SolutionGuid = {7740D998-67E7-4F55-8FB1-72606E480904}
