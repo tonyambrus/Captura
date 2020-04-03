@@ -1,7 +1,9 @@
-﻿using Newtonsoft.Json;
-using QRCoder;
+﻿using QRCoder;
 using System;
 using System.Diagnostics;
+using System.Drawing;
+using System.Drawing.Imaging;
+using System.IO;
 using System.Threading;
 using System.Threading.Tasks;
 
@@ -11,16 +13,16 @@ namespace ScreenShare
     {
         private string channel = "screenShare";// Guid.NewGuid().ToString();
         private string channelKey = "screenShare";
-        private string serverAddress = "http://192.168.1.158:3000/"; //"http://node-swc.azurewebsites.net/";
+        private string serverAddress = "http://node-swc.azurewebsites.net/";
+        //private string serverAddress = "http://192.168.1.158:3000/";
         private string mediaServerPath = @"D:\Code\Experiments\mediaserver";
-        private string streamName = "screenShare";
         private Process mediaServerProcess = null;
         private Job job;
         private ScreenShareView view;
         private CancellationTokenSource shutdown;
 
         public string ChannelAddress => $"{serverAddress}channel/{channel}/";
-        public string StreamName => streamName;
+        public string StreamName { get; } = "screenShare";
         public bool Connected { get; private set; }
 
         public ScreenShare()
@@ -120,16 +122,30 @@ namespace ScreenShare
 
         private void ShowQRCode()
         {
-            var url = $"{serverAddress}channel/{channel}/#{streamName}";
+            var url = $"{serverAddress}channel/{channel}/#{StreamName}";
 
             // shows QR code [server, broadcast url]
             var qrGenerator = new QRCodeGenerator();
-            var qrCodeData = qrGenerator.CreateQrCode(url, QRCodeGenerator.ECCLevel.Q);
+            var qrCodeData = qrGenerator.CreateQrCode(url, QRCodeGenerator.ECCLevel.L);
             var qrCode = new QRCode(qrCodeData);
             var qrCodeImage = qrCode.GetGraphic(20);
 
-            view.SetImage(qrCodeImage.ToBitmapImage());
-            view.Show();
+            PostConnectionPage(qrCodeImage);
+            //view.SetImage(qrCodeImage.ToBitmapImage());
+            //view.Show();
+        }
+
+        private async void PostConnectionPage(Bitmap qrCodeImage)
+        {
+            using MemoryStream memoryStream = new MemoryStream();
+            qrCodeImage.Save(memoryStream, ImageFormat.Png);
+            var pngData = memoryStream.ToArray();
+            var text = Convert.ToBase64String(pngData);
+
+            var body = $"<html><body><img src=\"data:image/png;base64,{text}\"/></body></html>";
+            await NetworkUtil.PostAsync($"{serverAddress}create/{channel}/persist?key={channelKey}&path=connect", body, "text/html");
+
+            Process.Start($"{serverAddress}channel/{channel}/connect");
         }
 
         public void Dispose()
