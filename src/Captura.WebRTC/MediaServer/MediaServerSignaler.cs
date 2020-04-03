@@ -1,4 +1,5 @@
-﻿using Newtonsoft.Json;
+﻿using Microsoft.MixedReality.WebRTC;
+using Newtonsoft.Json;
 using Newtonsoft.Json.Linq;
 using System;
 using System.Threading;
@@ -18,6 +19,9 @@ namespace Captura.Models.WebRTC
         private NodeDssConnection connection;
         private CancellationTokenSource shutdown;
         
+        private bool isConnected;
+        private IceConnectionState state;
+        
         public MediaServerSignaler(MediaServerService svc, string localId, string streamName, WebRTCSession session)
         {
             this.service = svc;
@@ -36,12 +40,39 @@ namespace Captura.Models.WebRTC
             this.session.Initialized += OnPeerConnectionInitialized;
             this.session.PostShutdown += OnPostShutdown;
             this.session.Peer.Connected += OnPeerConnected;
+            this.session.Peer.IceStateChanged += OnIceStateChanged;
             this.session.Peer.RenegotiationNeeded += OnRenegotiate;
             this.session.Start();
         }
 
+        private void OnIceStateChanged(IceConnectionState newState)
+        {
+            state = newState;
+
+            if (!isConnected)
+            {
+                if (newState == IceConnectionState.Completed)
+                {
+                    isConnected = true;
+                }
+            }
+            else
+            {
+                if (newState == IceConnectionState.Failed || newState == IceConnectionState.Closed || newState == IceConnectionState.Disconnected)
+                {
+                    isConnected = false;
+                }
+            }
+        }
+
         private async void OnMessageReceived(string msg)
         {
+            if (isConnected && receivedOffer)
+            {
+                // already connected
+                return;
+            }
+
             var jsonMsg = JObject.Parse(msg);
             if (jsonMsg == null)
             {
@@ -71,6 +102,7 @@ namespace Captura.Models.WebRTC
             {
                 Util.WriteLine($"MediaServerSignaler.SetRemoteDescription - answer='{Util.PrettyPrint(data, 20)}...'");
                 await session.Peer.SetRemoteDescriptionAsync("answer", data);
+                receivedOffer = true;
             }
             else if (msgType == Message.WireMessageType.Ice)
             {
