@@ -1,39 +1,57 @@
-﻿using ScreenShare;
-using System;
+﻿using System;
 using System.Collections.Generic;
+using System.Threading;
 
 namespace Captura.Models.WebRTC
 {
     public class WebRTCHost : IDisposable
     {
         private IDisposable service;
-        private IDisposable screenShare;
+        private ScreenShare.ScreenShare screenShare;
         private List<WebRTCSession> sessions = new List<WebRTCSession>();
+        private CancellationTokenSource shutdown;
 
         public event Action<byte[], int, int> VideoFrameReady;
 
         public WebRTCHost(WebRTCSettings settings)
         {
-            screenShare = new ScreenShare.ScreenShare();
+            Run(settings);
+        }
 
-            service = new MediaServerService(this, "http://192.168.1.158:3000/channel/mediaserver/", "mediaserver");
+        private async void Run(WebRTCSettings settings)
+        {
+            shutdown = new CancellationTokenSource();
 
-            //if (true || settings.Mode == WebRTCEndpoint.NodeDSS)
-            //{
-            //    service = new NodeDssService(this, settings.MediaServerUrl, settings.MediaServerStreamName);
-            //}
-            //else if (settings.Mode == WebRTCEndpoint.WebSocket)
-            //{
-            //    service = new WebSocketService(this, settings.WebSocketPath, settings.WebSocketPort);
-            //}
-            //else if (settings.Mode == WebRTCEndpoint.MediaServer)
-            //{ 
-            //    service = new MediaServerService(this, settings.MediaServerUrl, settings.MediaServerStreamName);
-            //}
-            //else
-            //{
-            //    throw new Exception($"Invalid mode {settings.Mode}");
-            //}
+            bool useScreenShare = true;
+            if (useScreenShare)
+            {
+                screenShare = new ScreenShare.ScreenShare();
+                await screenShare.Start(shutdown.Token);
+
+                if (!shutdown.IsCancellationRequested)
+                {
+                    service = new MediaServerService(this, screenShare.ChannelAddress, screenShare.StreamName);
+                }
+            }
+            else
+            {
+                if (settings.Mode == WebRTCEndpoint.NodeDSS)
+                {
+                    service = new NodeDssService(this, settings.MediaServerUrl, settings.MediaServerStreamName);
+                }
+                else if (settings.Mode == WebRTCEndpoint.WebSocket)
+                {
+                    service = new WebSocketService(this, settings.WebSocketPath, settings.WebSocketPort);
+                }
+                else if (settings.Mode == WebRTCEndpoint.MediaServer)
+                { 
+                    service = new MediaServerService(this, settings.MediaServerUrl, settings.MediaServerStreamName);
+                }
+                else
+                {
+                    throw new Exception($"Invalid mode {settings.Mode}");
+                }
+            }
         }
 
         public void Register(WebRTCSession session)

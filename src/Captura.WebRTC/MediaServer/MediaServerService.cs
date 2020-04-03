@@ -34,8 +34,11 @@ namespace Captura.Models.WebRTC
             }
             catch (Exception e)
             {
-                Util.WriteLine($"Failed to etablish as a broadcaster ({e.Message}). Stream will be empty.");
+                Util.WriteLine($"Failed to establish as a broadcaster ({e.Message}). Trying again in 2 seconds");
                 Util.WriteLine(e.ToString());
+
+                await Task.Delay(2000);
+                await EstablishAsBroadcasterAsync();
             }
         }
 

@@ -2,6 +2,8 @@
 using QRCoder;
 using System;
 using System.Diagnostics;
+using System.Threading;
+using System.Threading.Tasks;
 
 namespace ScreenShare
 {
@@ -11,21 +13,43 @@ namespace ScreenShare
         private string channelKey = "screenShare";
         private string serverAddress = "http://192.168.1.158:3000/"; //"http://node-swc.azurewebsites.net/";
         private string mediaServerPath = @"D:\Code\Experiments\mediaserver";
-        private string streamName = "ScreenShare";
-        private Process mediaServerProcess;
+        private string streamName = "screenShare";
+        private Process mediaServerProcess = null;
+        private Job job;
         private ScreenShareView view;
+        private CancellationTokenSource shutdown;
+
+        public string ChannelAddress => $"{serverAddress}channel/{channel}/";
+        public string StreamName => streamName;
+        public bool Connected { get; private set; }
 
         public ScreenShare()
         {
             view = new ScreenShareView();
-            view.Closed += (s, e) => Dispose();
+            //view.Closed += (s, e) => Dispose();
             view.InitializeComponent();
 
-            Run();
+            Connected = false;
         }
 
-        public void Run()
+        public async Task Start(CancellationToken token)
         {
+            shutdown = CancellationTokenSource.CreateLinkedTokenSource(token);
+
+            await RemoveChannelAsync();
+            RemoveChannelOnShutdownAsync();
+            StartMediaServer();
+
+            if (await WaitForChannelSetupAsync())
+            {
+                // starts captura with local param
+                ShowQRCode();
+                Connected = true;
+            }
+        }
+
+        private void StartMediaServer()
+        {         
             // starts mediaServer with server param url
             var psi = new ProcessStartInfo
             {
@@ -38,24 +62,69 @@ namespace ScreenShare
             psi.Environment["SIGNALLINGPROXYSERVER_CHANNEL"] = channel;
             psi.Environment["SIGNALLINGPROXYSERVER_CHANNELKEY"] = channelKey;
             psi.Environment["SIGNALLINGPROXYSERVER_ADDRESS"] = serverAddress;
-            //mediaServerProcess = Process.Start(psi);
+            
+            mediaServerProcess = Process.Start(psi);
+            
+            // kill child process on close
+            job = new Job();
+            job.AddProcess(mediaServerProcess.Id);
+        }
 
-            // starts captura with local param
-            ShowQRCode();
+        private async void RemoveChannelOnShutdownAsync()
+        {
+            try
+            {
+                await Task.Delay(-1, shutdown.Token);
+            }
+            catch (TaskCanceledException)
+            {
+                // no-op
+            }
+
+            await RemoveChannelAsync();
+        }
+
+        private async Task RemoveChannelAsync()
+        {
+            try
+            {
+                await NetworkUtil.GetAsync($"{serverAddress}remove/{channel}?key={channelKey}", shutdown.Token);
+            }
+            catch
+            {
+                // no-op
+            }
+        }
+
+
+        private async Task<bool> WaitForChannelSetupAsync()
+        {
+           // await Task.Delay(5000); // HACK: wait for media server to start
+
+            while (!shutdown.IsCancellationRequested)
+            {
+                try
+                {
+                    await NetworkUtil.GetAsync($"{serverAddress}list/{channel}/private?key={channelKey}", shutdown.Token);
+                    return true;
+                }
+                catch (Exception)
+                {
+                    // 404 keep waiting
+                    await Task.Delay(500);
+                }
+            }
+
+            return false;
         }
 
         private void ShowQRCode()
         {
-            var json = JsonConvert.SerializeObject(new
-            {
-                nodeDssServerUrl = $"{serverAddress}/channel/{channel}/",
-                channel = channel,
-                streamName
-            });
+            var url = $"{serverAddress}channel/{channel}/#{streamName}";
 
             // shows QR code [server, broadcast url]
             var qrGenerator = new QRCodeGenerator();
-            var qrCodeData = qrGenerator.CreateQrCode(json, QRCodeGenerator.ECCLevel.Q);
+            var qrCodeData = qrGenerator.CreateQrCode(url, QRCodeGenerator.ECCLevel.Q);
             var qrCode = new QRCode(qrCodeData);
             var qrCodeImage = qrCode.GetGraphic(20);
 
@@ -63,13 +132,18 @@ namespace ScreenShare
             view.Show();
         }
 
-        public async void Dispose()
+        public void Dispose()
         {
-            view?.Hide();
-            view = null;
+            shutdown.Cancel();
 
-            mediaServerProcess?.Kill();
-            mediaServerProcess?.Dispose();
+            if (view != null)
+            {
+                view.Dispatcher.Invoke(() => view.Hide());
+            }
+
+            job?.Dispose();
+
+            Connected = false;
         }
     }
 }

@@ -1,13 +1,13 @@
 ﻿using Newtonsoft.Json;
 using Newtonsoft.Json.Linq;
 using System;
+using System.Threading;
 using System.Threading.Tasks;
 
 namespace Captura.Models.WebRTC
 {
     public class MediaServerSignaler : IDisposable
     {
-        public bool IsClient => false;
         public bool receivedOffer = false;
         
         private MediaServerService service;
@@ -16,6 +16,7 @@ namespace Captura.Models.WebRTC
 
         private WebRTCSession session;
         private NodeDssConnection connection;
+        private CancellationTokenSource shutdown;
         
         public MediaServerSignaler(MediaServerService svc, string localId, string streamName, WebRTCSession session)
         {
@@ -24,6 +25,8 @@ namespace Captura.Models.WebRTC
 
             this.localId = localId;
             this.streamName = streamName;
+
+            this.shutdown = new CancellationTokenSource();
 
             this.connection = new NodeDssConnection(service.ServerAddress, $"data/{localId}");
             this.connection.MessageReceived += OnMessageReceived;
@@ -122,9 +125,23 @@ namespace Captura.Models.WebRTC
 
         private async Task SendMessageAsync(Message msg)
         {
-            var json = JsonConvert.SerializeObject(msg, Formatting.None);
-            Util.Log($"MediaServerSignaler.SendMessageAsync('{service.ServerAddress}data/{localId}/{streamName}', '{Util.PrettyPrint(json, 60)}...')");
-            await NetworkUtil.PostJsonAsync($"{service.ServerAddress}data/{localId}/{streamName}", json);
+            if (shutdown.IsCancellationRequested)
+            {
+                return;
+            }
+
+            try
+            {
+                var json = JsonConvert.SerializeObject(msg, Formatting.None);
+                Util.Log($"MediaServerSignaler.SendMessageAsync('{service.ServerAddress}data/{localId}/{streamName}', '{Util.PrettyPrint(json, 60)}...')");
+                await NetworkUtil.PostJsonAsync($"{service.ServerAddress}data/{localId}/{streamName}", json);
+            }
+            catch
+            {
+                Util.Log($"Failed to SendMessageAsync, waiting 2 seconds");
+                await Task.Delay(2000);
+                await SendMessageAsync(msg);
+            }
         }
 
         private async void OnPeerConnected()
@@ -134,15 +151,22 @@ namespace Captura.Models.WebRTC
 
         private async Task ResumeConnectionAsync()
         {
+            if (shutdown.IsCancellationRequested)
+            {
+                return;
+            }
+
             try
             {
                 string body = $"{{ \"signalFromId\": \"{localId}\" }}";
                 Util.Log($"MediaServerSignaler.ResumeConnectionAsync('{service.ServerAddress}broadcast/{streamName}/resume', '{Util.PrettyPrint(body, 60)}...')");
                 await NetworkUtil.PostJsonAsync($"{service.ServerAddress}broadcast/{streamName}/resume", body);
             }
-            catch (Exception ex)
+            catch
             {
-                Util.LogException(ex);
+                Util.Log($"Failed to ResumeConnectionAsync, waiting 2 seconds");
+                await Task.Delay(2000);
+                await ResumeConnectionAsync();
             }
         }
 
@@ -153,6 +177,8 @@ namespace Captura.Models.WebRTC
 
         public async void Dispose()
         {
+            shutdown.Cancel();
+
             connection.MessageReceived -= OnMessageReceived;
             connection.Dispose();
 
@@ -172,15 +198,22 @@ namespace Captura.Models.WebRTC
 
         private async Task ShutdownConnectionAsync()
         {
+            if (shutdown.IsCancellationRequested)
+            {
+                return;
+            }
+
             try
             {
                 string body = $"{{ \"signalFromId\": \"{localId}\" }}";
                 Util.Log($"MediaServerSignaler.ResumeConnectionAsync('{service.ServerAddress}broadcast/{streamName}/shutdown', '{Util.PrettyPrint(body, 60)}...')");
                 await NetworkUtil.PostJsonAsync($"{service.ServerAddress}broadcast/{streamName}/shutdown", body);
             }
-            catch (Exception ex)
+            catch
             {
-                Util.LogException(ex);
+                Util.Log($"Failed to ResumeConnectionAsync, waiting 2 seconds");
+                await Task.Delay(2000);
+                await ResumeConnectionAsync();
             }
         }
 
