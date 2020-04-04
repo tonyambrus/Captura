@@ -62,7 +62,7 @@ namespace Captura.Models.WebRTC
         {
             lock (signallers)
             {
-                foreach (var signaller in signallers)
+                foreach (var signaller in signallers.ToArray())
                 {
                     signaller.Dispose();
                 }

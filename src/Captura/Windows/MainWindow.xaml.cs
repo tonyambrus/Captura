@@ -32,7 +32,7 @@ namespace Captura
 
                 ServiceProvider.Get<WebcamPage>().SetupPreview();
 
-                _helper.HotkeySetup.ShowUnregistered();
+                //_helper.HotkeySetup.ShowUnregistered();
             };
 
             if (App.CmdOptions.Tray || _helper.Settings.Tray.MinToTrayOnStartup)

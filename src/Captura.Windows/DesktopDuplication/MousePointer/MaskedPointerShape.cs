@@ -68,20 +68,31 @@ namespace DesktopDuplication
                 _copyTex,
                 0);
 
-            var desktopMap = _editorSession.Device.ImmediateContext.MapSubresource(
-                _copyTex,
-                0,
-                MapMode.Read,
-                MapFlags.None);
-
             try
             {
-                Marshal.Copy(desktopMap.DataPointer, DesktopBuffer, 0, DesktopBuffer.Length);
+                try
+                {
+                    var desktopMap = _editorSession.Device.ImmediateContext.MapSubresource(
+                        _copyTex,
+                        0,
+                        MapMode.Read,
+                        MapFlags.None);
+
+                    Marshal.Copy(desktopMap.DataPointer, DesktopBuffer, 0, DesktopBuffer.Length);
+                }
+                finally
+                {
+                    _editorSession.Device.ImmediateContext.UnmapSubresource(_copyTex, 0);
+                }
+
             }
-            finally
+            catch
             {
-                _editorSession.Device.ImmediateContext.UnmapSubresource(_copyTex, 0);
+                var hr = _editorSession.Device.DeviceRemovedReason;
+                System.Diagnostics.Debug.WriteLine("Device Removed Reason: " + hr);
+                throw;
             }
+
 
             OnUpdate();
 

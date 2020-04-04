@@ -25,10 +25,10 @@ namespace Captura.Models.WebRTC
             bool useScreenShare = true;
             if (useScreenShare)
             {
-                screenShare = new ScreenShare.ScreenShare();
+                screenShare = new ScreenShare.ScreenShare(settings.MediaServerUrl, settings.MediaServerStreamName);
                 await screenShare.Start(shutdown.Token);
 
-                if (!shutdown.IsCancellationRequested)
+                if (screenShare != null && !shutdown.IsCancellationRequested)
                 {
                     service = new MediaServerService(this, screenShare.ChannelAddress, screenShare.StreamName);
                 }

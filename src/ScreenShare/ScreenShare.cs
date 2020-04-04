@@ -13,8 +13,8 @@ namespace ScreenShare
     {
         private string channel = "screenShare";// Guid.NewGuid().ToString();
         private string channelKey = "screenShare";
-        private string serverAddress = "http://node-swc.azurewebsites.net/";
-        //private string serverAddress = "http://192.168.1.158:3000/";
+        //private string serverAddress = "http://node-swc.azurewebsites.net/";
+        private string serverAddress = "http://192.168.1.158:3000/";
         private string mediaServerPath = @"D:\Code\Experiments\mediaserver";
         private Process mediaServerProcess = null;
         private Job job;
@@ -25,8 +25,11 @@ namespace ScreenShare
         public string StreamName { get; } = "screenShare";
         public bool Connected { get; private set; }
 
-        public ScreenShare()
+        public ScreenShare(string serverAddress, string streamName)
         {
+            this.serverAddress = serverAddress;
+            //this.StreamName = streamName;
+
             view = new ScreenShareView();
             //view.Closed += (s, e) => Dispose();
             view.InitializeComponent();
@@ -58,7 +61,9 @@ namespace ScreenShare
                 FileName = "cmd",
                 Arguments = "/c \"C:\\Program Files\\nodejs\\npm.cmd\" start",
                 WorkingDirectory = mediaServerPath,
-                UseShellExecute = false
+                UseShellExecute = false,
+                //CreateNoWindow = true,
+                //WindowStyle = ProcessWindowStyle.Hidden
             };
 
             psi.Environment["SIGNALLINGPROXYSERVER_CHANNEL"] = channel;
